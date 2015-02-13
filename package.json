@@ -1,0 +1,22 @@
+{
+  "name": "neteasy-music-downloader",
+  "version": "0.0.1",
+  "private": true,
+  "scripts": {
+    "start": "node app.js"
+  },
+  "dependencies": {
+    "async": "*",
+    "q": "^1.1.2",
+    "request": "*",
+    "single-line-log": "^0.4.1"
+  },
+  "readmeFilename": "README.md",
+  "description": "A douban FM web app build with express",
+  "devDependencies": {},
+  "keywords": [
+    "douban.fm"
+  ],
+  "author": "Jiaxiang Zheng",
+  "license": "MIT"
+}
