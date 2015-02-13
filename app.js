@@ -14,8 +14,11 @@ var app_config = {
     hostname: 'music.163.com',
     method: 'GET',
     headers: {
-        'Accept':'application/json',
+        'Accept': 'application/json, text/javascript, */*; q=0.01',
+        'Accept-Language': 'en-US,en;q=0.8,zh-CN;q=0.6,zh;q=0.4',
         'User-Agent': 'neteasy-music-downloader',
+        'Cache-Control': 'no-cache',
+        'Connection': 'keep-alive',
         'Cookie': 'appver=2.0.2',
         'Referer': 'http://music.163.com'
     }
@@ -30,34 +33,68 @@ var ENUM_TYPE = {
     'user': 1002
 };
 
-// TODO: 如何消除循环中出现的层层异步回调？
-function download_album_by_search(keyword, folder) {
-    folder = folder || "./";
-    search_album(keyword).then(function (json) {
-        var album_list = json.albums;
-        if (album_list.length === 0) {
-            console.log('[WARNINGO]:', 'NOTHING FOUND');
+var callbacks = {
+    'song': function (json, folder) {
+        var song_list = json.songs;
+        if ((json.songCount === 0 && !song_list) || song_list.length === 0) {
+            console.log('[WARNINGO]:', '啥也没搜到……');
         } else {
-            album_list.forEach(function (album) {
+            console.log('[INFO]:', '共搜到' + json.songCount + '首歌');
+            song_list.forEach(function (song, index) {
+                console.log(index, "    ", song.name);
+                var option = {
+                    path: '/api/song/' + song.id,
+                    method: 'GET'
+                };
+                option = utility.extend(app_config, option);
+
+                http.request(option, function (res) {
+                    console.log(res.statusCode);
+                }).on('error', function (err) {
+                    console.log(err);
+                }).end();
+            });
+        }
+    },
+    'album': function (json, folder) {
+        var album_list = json.albums;
+        if ((json.albumCount === 0 && !album_list) || album_list.length === 0) {
+            console.log('[WARNINGO]:', '啥也没搜到……');
+        } else {
+            console.log('[INFO]:', '共搜到' + json.albumCount + '个专辑');
+            album_list.forEach(function (album, index) {
+                console.log(index, ":\t", album.name);
                 fetch_album(album.id).then(function (album_info) {
                     var songs = album_info.songs;
                     songs.forEach(function (song) {
-                        download_song(song);
+                        download_song(song, folder);
                     });
                 }, function (err) {
                     console.error('[ERROR]:', err);
                 });
             });
         }
+    }
+};
+
+function album_callback() {
+
+}
+
+// TODO: 如何消除循环中出现的层层异步回调？
+function download_album_by_search(keyword, type, folder) {
+    type = type || 1;
+    folder = folder || "./";
+    search_album(keyword, type).then(function (json) {
+        callbacks[type](json, folder);
     }, function (err) {
         console.error('[ERROR]:', err);
     });
     return;
 }
 
-function search_album(keyword) {
+function search_album(keyword, type) {
     var defer = q.defer();
-    var type = 'album';
     var query = {
         's': keyword,
         'type': ENUM_TYPE[type], // 指明是搜索album
@@ -78,6 +115,7 @@ function search_album(keyword) {
 
     var req = http.request(option, function (res) {
         if (res.statusCode !== 200) {
+            console.log(res.statusCode);
             return;
         }
         var buf = [];
@@ -90,8 +128,11 @@ function search_album(keyword) {
         });
         res.on('end', function () {
             buf = Buffer.concat(buf);
-            // fs.writeFile('search-example-' + keyword + '.json', buf, function (err) {
-            // });
+
+            // TODO: remove this line since it's for debug only
+            fs.writeFile('search-example-' + keyword + '.json', buf, function (err) {
+            });
+
             var json = res.body = JSON.parse(buf.toString());
             if (json.code !== 200) {
                 defer.reject(new Error('获取信息代码有误'));
@@ -158,7 +199,7 @@ var queue = async.queue(function (task, callback) {
             callback(new Error('[ERROR]: FAILED DOWNLOAD DUE TO INCORRECT STATUS CODE ' + task.songname + ' ' + res.statusCode));
             return;
         }
-        var filestream = fs.createWriteStream('songs/' + task.songname + "." + task.extension);
+        var filestream = fs.createWriteStream(task.folder + '/' + task.songname + "." + task.extension);
         filestream.on('finish', function () {
             callback();
         });
@@ -179,7 +220,7 @@ var queue = async.queue(function (task, callback) {
 
 var iter = 0;
 // TODO: 有些歌曲无法成功下载
-function download_song(song) {
+function download_song(song, folder) {
     var music = song.lMusic;
     var id = music.dfsId; // || (song.hMusic && song.hMusic.dfsId) || (song.mMusic && song.mMusic.dfsId);
     var encryped_id = utility.encrype_id(id);
@@ -195,7 +236,8 @@ function download_song(song) {
         option: option, 
         songname: song.name,
         size: music.size,
-        extension: music.extension
+        extension: music.extension,
+        folder: folder
     }, function (err) {
         if (err) {
             console.log('下载出错', err);
@@ -205,4 +247,4 @@ function download_song(song) {
     });
 }
 
-download_album_by_search('eason')
+download_album_by_search('棋子', 'song')

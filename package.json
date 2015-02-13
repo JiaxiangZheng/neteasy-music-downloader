@@ -9,10 +9,11 @@
     "async": "*",
     "q": "^1.1.2",
     "request": "*",
+    "requirejs": "^2.1.16",
     "single-line-log": "^0.4.1"
   },
   "readmeFilename": "README.md",
-  "description": "A douban FM web app build with express",
+  "description": "A neteasy-music-downloader web app build with node.js",
   "devDependencies": {},
   "keywords": [
     "douban.fm"
