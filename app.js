@@ -1,10 +1,5 @@
 // https://github.com/yanunon/NeteaseCloudMusic/wiki/%E7%BD%91%E6%98%93%E4%BA%91%E9%9F%B3%E4%B9%90API%E5%88%86%E6%9E%90
 
-// TODO: 1. 状态进度条显示
-//       2. 异步式非阻塞请求（目前似乎网易云音乐只允许一个下载时间段内发一个请求）
-//       3. 用Promise重构
-//       4. 抽象出公共的SDK部分，使得抽象的代码能够更广泛地被复用
-
 var http = require('http'),
     fs = require('fs'),
     url = require('url'),
