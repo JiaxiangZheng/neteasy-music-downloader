@@ -7,7 +7,7 @@ var http = require('http'),
     querystring = require('querystring'),
     q = require('q'),
     util = require('util'),
-    utility = require('./utility');
+    utility = require('./lib/utility');
 var statusLog = require('single-line-log').stdout;
 
 var app_config = {
@@ -160,13 +160,12 @@ var queue = async.queue(function (task, callback) {
         }
         var filestream = fs.createWriteStream('songs/' + task.songname + "." + task.extension);
         filestream.on('finish', function () {
-            process.stdout.write('\n');
             callback();
         });
-        // res.on('data', function (chunk) {
-        //     size += chunk.length;
-        //     statusLog('Downloading [' + (100 * size  / task.size).toFixed(2) + '%] data');
-        // });
+        res.on('data', function (chunk) {
+            size += chunk.length;
+            statusLog('Downloading [' + (100 * size  / task.size).toFixed(2) + '%] data');
+        });
         res.on('error', function (err) {
             callback(new Error('[ERROR]: response error when trying to download ' + task.songname));
         }).pipe(filestream).on('error', function () {
@@ -186,7 +185,7 @@ function download_song(song) {
     var encryped_id = utility.encrype_id(id);
 
     var option = {
-        hostname: util.format('m%d.music.126.net', iter % 3),
+        hostname: util.format('m%d.music.126.net', iter % 2 + 1),
         path: encryped_id + '/' + id + '.mp3',
         method: 'GET'
     };
@@ -201,7 +200,7 @@ function download_song(song) {
         if (err) {
             console.log('下载出错', err);
         } else {
-            console.log('成功下载歌曲 ', song.name);
+            console.log('\n成功下载歌曲 ', song.name, '\n');
         }
     });
 }
